@@ -40,7 +40,7 @@ vlan_ip="xxx.xxx.xxx.xxx" # your VLAN private IP, assigned to your server
 portal_ip="yyy.yyy.yyy.yyy" # portal IP address
 initiator="qn.2019-03.com.cherryservers:initiator-XXXXXXX-YYYYYYY" # initiator name provided for your server
 
-cherry-block-storage -v $vlan_id -z $vlan_ip -d $portal_ip -i $initiator -e
+cherry-elastic-storage -v $vlan_id -z $vlan_ip -d $portal_ip -i $initiator -e
 ```
 
 **Detach a volume**
@@ -55,5 +55,5 @@ Example:
 vlan_ip="xxx.xxx.xxx.xxx" # your VLAN private IP, assigned to your server
 portal_ip="yyy.yyy.yyy.yyy" # portal IP address
 
-cherry-block-storage -z $vlan_ip -d $portal_ip -q
+cherry-elastic-storage -z $vlan_ip -d $portal_ip -q
 ```
