@@ -8,6 +8,7 @@ function print_usage() {
     echo "  -i  initiator name"
     echo "  -d  discovery IP address"
     echo "  -v  VLAN"
+    echo "  -z  VLAN IP address"
     echo "  -e  attach volume"
     echo "  -q  detach volume"
     echo
@@ -518,6 +519,9 @@ function detach_volume() {
             multipath -f $vol_name &>/dev/null
         done
         clean_mpath_bindings
+
+        rm -rf /etc/iscsi/{nodes,send_targets}/*
+        rm -rf /var/lib/iscsi/{nodes,send_targets}/*
     else
         echo -e "\tCan't find any active sessions with provided subnets"
     fi
