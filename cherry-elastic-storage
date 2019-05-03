@@ -1,0 +1,560 @@
+#!/bin/bash
+
+# Cherryservers.com block storage script for attaching and detaching volume on Linux
+
+function print_usage() {
+    echo "Usage: $(basename $0) [-h] -v <vlan id> -z <vlan ip> -d <portal ip> -i <initiator name> -e -q"
+    echo
+    echo "  -i  initiator name"
+    echo "  -d  discovery IP address"
+    echo "  -v  VLAN"
+    echo "  -e  attach volume"
+    echo "  -q  detach volume"
+    echo
+}
+
+shopt -s nocasematch
+
+template=$(mktemp)
+systemctl=0
+systemctl 2>/dev/null |grep -q '\-\.mount'
+[[ $? -eq 0 ]] && systemctl=1
+attach=no
+detach=no
+
+while getopts ":a:cheqwti:P:v:d:f:s:z:n:" opt; do
+    case $opt in
+        a) ipaddr=$OPTARG ;;
+        h) help=yes ;;
+        i) initiator=$OPTARG ;;
+        d) discovery_ip_1=$OPTARG ;;
+        z) vlan_ip_1=$OPTARG ;;
+        v) vlan_id=$OPTARG ;;
+        e) attach=yes ;;
+        q) detach=yes ;;
+       \?)
+           echo "Invalid option: -$OPTARG" >&2
+           print_usage >&2
+           exit 1
+           ;;
+    esac
+done
+
+if [[ "$help" == "yes" ]]; then
+    print_usage
+    exit 0;
+fi
+
+if [[ "$attach" == "yes" ]]; then
+
+    if [[ -z "$vlan_ip_1" ]]; then
+        echo "No vlan IP address provided!"
+        exit 1;
+    fi
+
+    if [[ -z "$vlan_id" ]]; then
+        echo "No vlan ID provided!"
+        exit 1;
+    fi
+
+    if [[ -z "$discovery_ip_1" ]]; then
+        echo "No discovery IP provided!"
+        exit 1;
+    fi
+
+    if [[ -z "$initiator" ]]; then
+        echo "No initiator name provided!"
+        exit 1;
+    fi
+
+elif [[ "$detach" == "yes" ]]; then
+
+    if [[ -z "$vlan_ip_1" ]]; then
+        echo "No vlan IP address provided!"
+        exit 1;
+    fi
+
+    if [[ -z "$discovery_ip_1" ]]; then
+        echo "No discovery IP provided!"
+        exit 1;
+    fi
+
+else
+    echo "Either attach or detach option is required!"
+    print_usage
+    exit 0;
+fi
+
+function make_network_config_template() {
+
+    local vlan_interface=$1
+    local vlan_id=$2
+    local vlan_ip_2=$3
+
+    if [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" == "18" ]]; then
+        cat > $template << EOF
+network:
+    version: 2
+    vlans:
+        $vlan_interface.$vlan_id:
+            addresses:
+            - $vlan_ip_2/24
+            id: $vlan_id
+            link: $vlan_interface
+            nameservers:
+                addresses:
+                - 46.166.166.46
+                - 5.199.160.160
+                search:
+                - localdomain
+EOF
+    elif [[ "$dist_name" == "ubuntu" ]] || [[ "$dist_name" == "debian" ]]; then
+        cat > $template << EOF
+auto $vlan_interface.$vlan_id
+iface $vlan_interface.$vlan_id inet static
+    address $vlan_ip_2/24
+    mtu 1500
+    vlan-raw-device $vlan_interface
+    vlan_id $vlan_id
+EOF
+    elif [[ "$dist_name" == "centos" ]]; then
+        cat > $template << EOF
+BOOTPROTO=none
+DEVICE=$vlan_interface.$vlan_id:1
+IPADDR=$vlan_ip_2
+MTU=1500
+NETMASK=255.255.255.0
+NM_CONTROLLED=no
+ONBOOT=yes
+PHYSDEV=$vlan_interface
+USERCTL=no
+VLAN=yes
+EOF
+    else
+        echo "Unknown distribution."
+        exit 1
+    fi
+
+}
+
+function check_if_secondary_vlan_ip_is_up() {
+
+    local vlan_ip_2=$1
+    ip -4 a|grep -qwo $vlan_ip_2; [[ $? -eq 0 ]] && { return 0; } || { return 1; }
+}
+
+function detect_distribution() {
+
+    echo -e "........";
+    echo "Detect distribution:"
+    t_var=$(grep -Po '^ID=["]*\K(\w+)|^VERSION_ID=["]*\K(\w+)' /etc/os-release|sort -r|tr '\n' ' ')
+
+    dist_name=$(cut -d ' ' -f1 <<< $t_var)
+    dist_vers=$(cut -d ' ' -f2 <<< $t_var)
+    echo -e "\tDist: $dist_name\tVer: $dist_vers"
+    echo "Detect distribution. Done"
+
+}
+
+function restart_network() {
+
+    local vlan_interface=$1
+    local vlan_id=$2
+
+    # Restart network
+    if [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" == "18" ]]; then
+        netplan apply
+    elif [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" == "14" ]]; then
+        ifdown $vlan_interface.$vlan_id && ifup $vlan_interface.$vlan_id
+    elif
+        [[ "$dist_name" == "centos" ]]; then
+            [[ "$systemctl" -eq 1 ]] && systemctl restart network || service network restart
+    else
+        [[ "$systemctl" -eq 1 ]] && systemctl restart networking
+    fi
+}
+
+function reboot_iscsid() {
+
+    # Restart iscsid
+    echo -e "........"
+    echo "Reboot iscsid service:"
+
+    if [[ "$dist_name" == "ubuntu" ]] || [[ "$dist_name" == "debian" ]]; then
+
+        if [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" != "14" ]]; then
+            [[ "$systemctl" -eq 1 ]] && systemctl restart iscsid || service iscsid restart
+        elif [[ "$dist_name" == "debian" ]] && [[ "$dist_vers" != "8" ]]; then
+            [[ "$systemctl" -eq 1 ]] && systemctl restart iscsid || service iscsid restart
+        elif [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" == "14" ]]; then
+            [[ "$systemctl" -eq 1 ]] && systemctl restart open-iscsi || service open-iscsi restart
+        elif [[ "$dist_name" == "debian" ]] && [[ "$dist_vers" == "8" ]]; then
+            [[ "$systemctl" -eq 1 ]] && systemctl restart open-iscsi || service open-iscsi restart
+        fi
+    elif
+        [[ "$dist_name" == "centos" ]]; then
+            [[ "$systemctl" -eq 1 ]] && systemctl restart iscsid || service iscsid restart
+    else
+        echo -e "Unknown distribution!"
+    fi
+
+    echo "Reboot iscsid service. Done."
+}
+
+function calculate_ips() {
+
+    local vlan_ip_1=$1
+    local discovery_ip_1=$2
+
+    # Get secondary vlan and discovery IP addresses
+    if [[ "$vlan_ip_1" =~ "10.169." ]] || [[ "$vlan_ip_1" =~ "10.168." ]]; then
+        vlan_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $vlan_ip_1)
+        discovery_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $discovery_ip_1)
+
+    elif [[ "$vlan_ip_1" =~ "192.168." ]]; then
+        vlan_ip_2=$(awk -F '.' '{print "10.157."$3"."$4}' <<< $vlan_ip_1)
+        discovery_ip_2=$(awk -F '.' '{print "10.157."$3"."$4}' <<< $discovery_ip_1)
+    else
+        echo "Unknown VLAN subnet: $vlan_ip_1";
+        exit 1
+    fi
+}
+
+function make_secondary_vlan_ip_up() {
+
+    local vlan_id=$1
+    local vlan_ip_1=$2
+
+    echo -e "........";
+    echo "Configure secondary VLAN IP:"
+
+    # Get VLAN interface
+    vlan_interface=$(ip -4 a | grep $vlan_id | grep 'state UP' | cut -d '@' -f2|cut -d ':' -f1)
+
+    calculate_ips $vlan_ip_1 $discovery_ip_1
+
+    if [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" == "18" ]]; then
+        net_cfg="/etc/netplan/60-$vlan_ip_2.yaml"
+    elif [[ "$dist_name" == "ubuntu" ]] || [[ "$dist_name" == "debian" ]]; then
+        net_cfg="/etc/network/interfaces.d/60-$vlan_ip_2.cfg"
+    elif [[ "$dist_name" == "centos" ]]; then
+        net_cfg="/etc/sysconfig/network-scripts/ifcfg-$vlan_interface.$vlan_id:1"
+    else
+        echo "Unknown distribution."
+        exit 1
+    fi
+
+    check_if_secondary_vlan_ip_is_up $vlan_ip_2
+    if [[ $? -eq 1 ]]; then
+        echo -e "\tNo secondary VLAN IP setuped. Let's setup one."
+        make_network_config_template $vlan_interface $vlan_id $vlan_ip_2
+
+        if [[ ! -e "$net_cfg" ]]; then
+            cp $template $net_cfg
+
+            # Restart network
+            restart_network $vlan_interface $vlan_id
+        else
+            diff -q $template $net_cfg >/dev/null
+            if [[ $? -eq 1 ]]; then
+                echo -e "\tNetwork config file for $vlan_ip_2 already exists."
+                echo -e "\t* Network config file exists but content differs from template."
+                echo -e "\t  Ensure $vlan_ip_2 is up and running by either removing"
+                echo -e "\t  $net_cfg and rerun script"
+                echo -e "\t  or configure it manually and try to run script again."
+                return 1;
+            else
+                echo -e "\tNetwork config file for $vlan_ip_2 already exists."
+                echo -e "The contents are valid. Try to restart networking."
+
+                # Restart network
+                restart_network $vlan_interface $vlan_id
+            fi
+        fi
+    else
+        echo -e "\tSecondary IP already exists. Skiping..."
+    fi
+
+    check_if_secondary_vlan_ip_is_up $vlan_ip_2
+    [[ $? -eq 0 ]] && {  echo "Configure secondary VLAN IP. Done."; return 0; } || { return 1; }
+}
+
+function load_multipath_modules() {
+
+    modprobe dm_multipath
+	modprobe dm_round_robin
+}
+
+function ensure_services_up_and_enabled() {
+
+    echo -e "........"
+    echo "Enable services:"
+
+    if [[ "$dist_name" == "ubuntu" ]] || [[ "$dist_name" == "debian" ]]; then
+
+        if [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" != "14" ]]; then
+            [[ "$systemctl" -eq 1 ]] && systemctl enable iscsid &>/dev/null
+        elif [[ "$dist_name" == "debian" ]] && [[ "$dist_vers" != "8" ]]; then
+            [[ "$systemctl" -eq 1 ]] && systemctl enable iscsid
+        elif [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" == "14" ]]; then
+            [[ "$systemctl" -eq 1 ]] && systemctl enable open-iscsi
+        elif [[ "$dist_name" == "debian" ]] && [[ "$dist_vers" == "8" ]]; then
+            [[ "$systemctl" -eq 1 ]] && systemctl enable open-iscsi
+        fi
+    elif
+        [[ "$dist_name" == "centos" ]]; then
+            [[ "$systemctl" -eq 1 ]] && systemctl restart iscsid || service iscsid restart
+    else
+        echo -e "Unknown distribution!"
+    fi
+
+    echo "Enable services. Done."
+}
+
+function install_required_packages() {
+
+    echo -e "........"
+    echo -e "Installing required packages:"
+    if [[ "$dist_name" == "ubuntu" ]] || [[ "$dist_name" == "debian" ]]; then
+        [[ ! $(which iscsiadm) ]] && { apt update && apt -y install open-iscsi; }
+        [[ ! $(which multipath) ]] && { apt update && apt -y install multipath-tools; }
+    elif [[ "$dist_name" == "centos" ]]; then
+        [[ ! $(which iscsiadm) ]] && { yum -y install iscsi-initiator-utils; } 
+        [[ ! $(which multipath) ]] && { yum -y install device-mapper-multipath; }
+    else
+        echo "Unknown packaging system!"
+        exit 1
+    fi
+
+    load_multipath_modules
+
+    echo -e "Installing required packages. Done."
+}
+
+function configure_iscsi() {
+
+    echo -e "........"
+    echo -e "Configure iscsid:"
+    if [[ $(grep 'node.startup = manual' /etc/iscsi/iscsid.conf) ]]; then
+        echo -e "\tUpdating iscsid.conf file..."
+        sed -i.bak 's/node.startup = manual/node.startup = automatic/g' /etc/iscsi/iscsid.conf
+    fi
+    echo -e "Configure iscsid. Done."
+}
+
+function create_multipath_config() {
+
+    echo -e "........"
+    echo -e "Create multipath config:"
+
+	cat <<- EOF > /etc/multipath.conf
+defaults {
+       polling_interval       3
+       fast_io_fail_tmo 5
+       path_selector              "round-robin 0"
+       rr_min_io                    100
+       rr_weight                    priorities
+       failback                    immediate
+       user_friendly_names     yes
+}
+
+blacklist {
+         devnode "^(ram|raw|loop|fd|md|dm-|sr|scd|st)[0-9]*"
+         devnode "^hd[a-z][[0-9]*]"
+         devnode "^vd[a-z]"
+         devnode "^cciss!c[0-9]d[0-9]*[p[0-9]*]"
+         device {
+               vendor  "Micron"
+               product ".*"
+         }
+         device {
+               vendor  "Intel"
+               product ".*"
+         }
+         device {
+               vendor  "DELL"
+               product ".*"
+         }
+}
+
+devices {
+        device {
+                vendor "StorPool"
+                product "iSCSI DISK"
+                path_grouping_policy group_by_prio
+                path_checker tur
+                hardware_handler "1 alua"
+        }
+}
+EOF
+    echo -e "Create multipath config. Done."
+}
+
+function change_initiator_name() {
+
+    local initiator_name=$1
+
+    echo -e "........"
+    echo -e "Change initiator name:"
+
+    if [[ ! $(grep $initiator_name /etc/iscsi/initiatorname.iscsi) ]]; then
+        echo -e "\tUpdate initiator name to $initiator_name"
+        sed -i "s/InitiatorName=.*/InitiatorName=$initiator_name/g" /etc/iscsi/initiatorname.iscsi
+    fi    
+
+    echo -e "Change initiator name. Done."
+}
+
+function clean_mpath_bindings() {
+
+    echo -e "........"
+    echo -e "Clean mpath bindings:"
+    [[ -f /etc/multipath/bindings ]] && sed -i "/^mpath.*/d" /etc/multipath/bindings
+    if [[ $(ls /dev/mapper/mpath* 2>/dev/null) ]]; then
+        echo -e "\tmpath entried found. Cleaning..."
+        for m in $(ls /dev/mapper/mpath* 2>/dev/null); do
+            multipath -f $m
+        done
+    fi
+    multipath >/dev/null
+    echo -e "Clean mpath bindings. Done."
+}
+
+function configure_multipath() {
+
+    echo -e "\t........"
+    echo -e "\tConfigure multipath:"
+    dev_name=$(ls -l /dev/disk/by-path/|grep "$target_name"|grep "$discovery_ip_1"|awk '{print $11}'|sed 's/\.\.\/\.\.\///g')
+
+    if [[ $(multipath -ll|grep -Eo '.*dm'|awk '{if (NF == 3){print $2} else if(NF == 2){print $1}}'|sed 's/[()]//g'|grep StorPool) ]]; then
+        wwid=$(multipath -ll|grep -Eo '.*dm'|awk '{if (NF == 3){print $2} else if(NF == 2){print $1}}'|sed 's/[()]//g'|grep StorPool)
+    else
+        wwid=$(/lib/udev/scsi_id -g -u -d /dev/$dev_name)
+    fi
+    vol_name=$(cut -d ':' -f3 <<< $target_name)
+
+    if [[ $(grep "^$vol_name" /etc/multipath/bindings 2>/dev/null) ]]; then
+        sed -i "s/^$vol_name .*/$vol_name $wwid/" /etc/multipath/bindings
+    else
+        echo "$vol_name $wwid" >> /etc/multipath/bindings
+    fi
+
+    multipath $vol_name &>/dev/null
+    echo -e "\tConfigure multipath. Done."
+}
+
+function attach_volume() {
+
+    local discovery_ip_1=$1
+    local discovery_ip_2=$2
+
+    portals=($discovery_ip_1 $discovery_ip_2)
+    for portal in ${portals[*]}; do
+
+        echo -e "........"
+        echo -e "Discover targets on portal $portal:"
+
+        if [[ $(iscsiadm --mode discovery -t sendtargets --portal $portal) ]]; then
+            echo -e "\tTargets were discovered on $portal"
+        else
+            echo -e "\tError: Can't discover targets on $portal"
+        fi
+
+        echo -e "Discover targets on portals. Done."
+
+        target_name=$(iscsiadm -m node -o show|grep 'node.name'|awk '{print $3}'|uniq)
+
+        echo -e "........"
+        echo -e "Login on portal $portal:"
+        if [[ ! $(iscsiadm -m session -o show 2>/dev/null|grep $portal) ]]; then
+            if [[ $(iscsiadm -m node -T $target_name -p $portal -l) ]]; then
+                echo -e "\tLogged in to $target_name on $portal"
+                sleep 5
+                configure_multipath
+
+            else
+                echo "Can't login to $target_name on portal $portal"
+            fi
+        else
+            echo -e "\tSession already exists."
+            configure_multipath
+        fi
+        echo -e "Login on portal $portal. Done."
+    done
+}
+
+function detach_volume() {
+
+    echo -e "........"
+    echo -e "Detach volume:"
+
+    calculate_ips $vlan_ip_1 $discovery_ip_1
+    vol_name=$(iscsiadm -m session -o show 2>/dev/null|grep -E "$discovery_ip_1|$discovery_ip_2"|grep -Po "iqn.2019-03.com.cherryservers:cherryservers:\K(.*)"|awk '{print $1}')
+
+    if [[ $vol_name ]]; then
+
+        vol_name=$(echo $vol_name|awk '{print $1}')
+        mnt=$(grep $vol_name /proc/mounts 2>/dev/null)
+        if [[ $mnt ]]; then
+            echo -e "\tVolume $vol_name is mounted. Please unmount it first and try again."
+            exit 1
+        fi
+
+        target_name=$(iscsiadm -m node -o show|grep 'node.name'|awk '{print $3}'|uniq)
+        for portal in $(iscsiadm -m session | grep $target_name | awk {'print $3'} | egrep -o '([[:digit:]]{1,3}\.){3}[[:digit:]]{1,3}'); do
+            echo -e "\tLog out from $target_name on $portal"
+            iscsiadm --mode node --targetname $target_name --portal $portal --logout &>/dev/null
+            sed -i "/^$vol_name.*/d" /etc/multipath/bindings
+            multipath -f $vol_name &>/dev/null
+        done
+        clean_mpath_bindings
+    else
+        echo -e "\tCan't find any active sessions with provided subnets"
+    fi
+
+    echo -e "Detach volume. Done."
+}
+
+function get_status() {
+
+    local vol_name=$1
+
+    wwid=$(grep $vol_name /etc/multipath/bindings|awk '{print $2}')
+
+    echo -e "#####################"
+    echo -e "Configuration report:"
+
+    if [[ -b "/dev/mapper/$vol_name" ]]; then
+        echo -e "\tBlock device /dev/mapper/$vol_name is ready. Format, mount and use it."
+    elif [[ -b "/dev/mapper/$wwid" ]]; then
+        echo -e "\tBlock device found as WWID: /dev/mapper/$wwid. Releading devmap..."
+        multipath -r >/dev/null
+        if [[ -b "/dev/mapper/$vol_name" ]]; then
+            echo -e "\tBlock device /dev/mapper/$vol_name is ready. Format, mount and use it."
+        fi
+    else
+        echo -e "\tCan't find block device /dev/mapper/$vol_name. Please contact support for assistance."
+    fi
+    echo -e "Configuration report. Done"
+    echo -e "#####################"
+}
+
+if [[ "$attach" == "yes" ]]; then
+
+    detect_distribution
+    make_secondary_vlan_ip_up $vlan_id $vlan_ip_1; [[ $? -eq 0 ]] || { exit 1; }
+    install_required_packages
+    create_multipath_config
+    change_initiator_name $initiator
+    configure_iscsi
+    reboot_iscsid
+    ensure_services_up_and_enabled
+    attach_volume $discovery_ip_1 $discovery_ip_2
+    clean_mpath_bindings 
+    get_status $vol_name
+fi
+
+if [[ "$detach" == "yes" ]]; then
+
+    detach_volume $discovery_ip_1 $vlan_ip_1
+fi
