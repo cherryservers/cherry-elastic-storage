@@ -2,7 +2,7 @@
 
 ----
 ## Quick overview
-This script helps in attaching or detaching Cherry elastic storage volume to desired server. Use ir at your own risk and always have a backup!
+This script helps in attaching or detaching CherryServers.com elastic storage volume to desired server. Use it at your own risk and always have a backup!
 
 # Supported distributions
 * CentOS 6, 7
@@ -38,7 +38,7 @@ Example:
 vlan_id="ZZZZ"
 vlan_ip="xxx.xxx.xxx.xxx" # your VLAN private IP, assigned to your server
 portal_ip="yyy.yyy.yyy.yyy" # portal IP address
-initiator="qn.2019-03.com.cherryservers:initiator-XXXXXXX-YYYYYYY" # initiator name provided for your server
+initiator="iqn.2019-03.com.cherryservers:initiator-XXXXXXX-YYYYYYY" # initiator name provided for your server
 
 cherry-elastic-storage -v $vlan_id -z $vlan_ip -d $portal_ip -i $initiator -e
 ```
