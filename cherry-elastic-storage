@@ -147,10 +147,16 @@ function detect_distribution() {
 
     echo -e "........";
     echo "Detect distribution:"
-    t_var=$(grep -Po '^ID=["]*\K(\w+)|^VERSION_ID=["]*\K(\w+)' /etc/os-release|sort -r|tr '\n' ' ')
+    if [[ -f /etc/os-release ]]; then
+        t_var=$(grep -Po '^ID=["]*\K(\w+)|^VERSION_ID=["]*\K(\w+)' /etc/os-release 2>/dev/null|sort -r|tr '\n' ' ')
 
-    dist_name=$(cut -d ' ' -f1 <<< $t_var)
-    dist_vers=$(cut -d ' ' -f2 <<< $t_var)
+        dist_name=$(cut -d ' ' -f1 <<< $t_var)
+        dist_vers=$(cut -d ' ' -f2 <<< $t_var)
+    elif [[ -f /etc/centos-release ]]; then
+        dist_name="centos"
+        dit_vers=$(grep -Po 'release \K(\d)' /etc/centos-release)
+    fi
+
     echo -e "\tDist: $dist_name\tVer: $dist_vers"
     echo "Detect distribution. Done"
 
@@ -295,15 +301,19 @@ function ensure_services_up_and_enabled() {
         if [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" != "14" ]]; then
             [[ "$systemctl" -eq 1 ]] && systemctl enable iscsid &>/dev/null
         elif [[ "$dist_name" == "debian" ]] && [[ "$dist_vers" != "8" ]]; then
-            [[ "$systemctl" -eq 1 ]] && systemctl enable iscsid
+            [[ "$systemctl" -eq 1 ]] && systemctl enable iscsid &>/dev/null
         elif [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" == "14" ]]; then
-            [[ "$systemctl" -eq 1 ]] && systemctl enable open-iscsi
+            [[ "$systemctl" -eq 1 ]] && systemctl enable open-iscsi &>/dev/null
         elif [[ "$dist_name" == "debian" ]] && [[ "$dist_vers" == "8" ]]; then
-            [[ "$systemctl" -eq 1 ]] && systemctl enable open-iscsi
+            [[ "$systemctl" -eq 1 ]] && systemctl enable open-iscsi &>/dev/null
         fi
     elif
         [[ "$dist_name" == "centos" ]]; then
-            [[ "$systemctl" -eq 1 ]] && systemctl restart iscsid || service iscsid restart
+            if [[ "$systemctl" -eq 1 ]]; then
+                systemctl enable multipathd &>/dev/null; systemctl enable iscsid &>/dev/null;
+            else
+                chkconfig iscsi on &>/dev/null; chkconfig multipathd on &>/dev/null;
+            fi
     else
         echo -e "Unknown distribution!"
     fi
