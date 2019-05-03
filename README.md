@@ -23,7 +23,7 @@ chmod +x /usr/local/bin/cherry-elastic-storage
 
 ## Usage
 
-** Attach a volume **
+**Attach a volume**
 1. Create a volume under the Storage tab in CherryServers.com portal.
 2. Click on a volume configuration button ant click on Attach menu.
 3. Select desired server to attach a volume.
@@ -43,7 +43,7 @@ initiator="qn.2019-03.com.cherryservers:initiator-XXXXXXX-YYYYYYY" # initiator n
 cherry-block-storage -v $vlan_id -z $vlan_ip -d $portal_ip -i $initiator -e
 ```
 
-** Detach a volume **
+**Detach a volume**
 
 1. Unmount a block device from mount point.
 2. Execute cherry-elastic-storage from the server you with volume to be detached.
@@ -55,5 +55,5 @@ Example:
 vlan_ip="xxx.xxx.xxx.xxx" # your VLAN private IP, assigned to your server
 portal_ip="yyy.yyy.yyy.yyy" # portal IP address
 
-rsync -a -e ssh cherry-block-storage root@$ip:/root/ && ssh root@$ip ./cherry-block-storage -z $vlan_ip -d $portal_ip -q
+cherry-block-storage -z $vlan_ip -d $portal_ip -q
 ```
