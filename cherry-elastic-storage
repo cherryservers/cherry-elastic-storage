@@ -175,8 +175,8 @@ function restart_network() {
         ifdown $vlan_interface.$vlan_id && ifup $vlan_interface.$vlan_id
     elif
         [[ "$dist_name" == "centos" ]]; then
+            ip addr flush $vlan_interface.$vlan_id
             [[ "$systemctl" -eq 1 ]] && systemctl restart network || service network restart
-            sleep 5
     else
         [[ "$systemctl" -eq 1 ]] && systemctl restart networking
     fi
@@ -261,7 +261,15 @@ function make_secondary_vlan_ip_up() {
             cp $template $net_cfg
 
             # Restart network
-            restart_network $vlan_interface $vlan_id
+            for attempt in $(seq 1 3); do
+                sleep 3;
+                check_if_secondary_vlan_ip_is_up $vlan_ip_2
+                if [[ $? -eq 1 ]]; then
+                    restart_network $vlan_interface $vlan_id
+                else
+                    break
+                fi
+            done
         else
             diff -q $template $net_cfg >/dev/null
             if [[ $? -eq 1 ]]; then
@@ -557,7 +565,7 @@ function get_status() {
 if [[ "$attach" == "yes" ]]; then
 
     detect_distribution
-    make_secondary_vlan_ip_up $vlan_id $vlan_ip_1; [[ $? -eq 0 ]] || { exit 1; }
+    make_secondary_vlan_ip_up $vlan_id $vlan_ip_1; [[ $? -eq 0 ]] || { echo "Unable to setup secondary IP!"; exit 1; }
     install_required_packages
     create_multipath_config
     change_initiator_name $initiator
