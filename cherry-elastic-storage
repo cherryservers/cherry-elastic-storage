@@ -321,9 +321,12 @@ function ensure_services_up_and_enabled() {
         [[ "$dist_name" == "centos" ]]; then
             if [[ "$systemctl" -eq 1 ]]; then
                 systemctl enable multipathd &>/dev/null; systemctl enable iscsid &>/dev/null;
+                systemctl start multipathd &>/dev/null
             else
                 chkconfig iscsi on &>/dev/null; chkconfig multipathd on &>/dev/null;
+                service multipathd start &>/dev/null
             fi
+
     else
         echo -e "Unknown distribution!"
     fi

@@ -16,7 +16,7 @@ This script helps in attaching or detaching CherryServers.com elastic storage vo
 ## Installation
 
 ```
-git clone git@github.com:cherryservers/cherry-elastic-storage.git
+git clone https://github.com/cherryservers/cherry-elastic-storage.git
 cd ./cherry-elastic-storage && cp ./cherry-elastic-storage /usr/local/bin/
 chmod +x /usr/local/bin/cherry-elastic-storage
 ```
