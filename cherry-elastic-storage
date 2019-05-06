@@ -566,7 +566,7 @@ if [[ "$attach" == "yes" ]]; then
     attach_volume $discovery_ip_1 $discovery_ip_2
     clean_mpath_bindings 
     get_status $vol_name
-fi
+fi 
 
 if [[ "$detach" == "yes" ]]; then
 

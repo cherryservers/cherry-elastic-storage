@@ -17,7 +17,7 @@ This script helps in attaching or detaching CherryServers.com elastic storage vo
 
 ```
 git clone git@github.com:cherryservers/cherry-elastic-storage.git
-cp ./cherry-elastic-storage /usr/local/bin/
+cd ./cherry-elastic-storage && cp ./cherry-elastic-storage /usr/local/bin/
 chmod +x /usr/local/bin/cherry-elastic-storage
 ```
 
@@ -25,7 +25,7 @@ chmod +x /usr/local/bin/cherry-elastic-storage
 
 **Attach a volume**
 1. Create a volume under the Storage tab in CherryServers.com portal.
-2. Click on a volume configuration button ant click on Attach menu.
+2. Click on a volume configuration button and click on Attach menu.
 3. Select desired server to attach a volume.
 4. Execute cherry-elastic-storage from the server you with volume to be attached.
 5. Partition block device.
@@ -46,7 +46,7 @@ cherry-elastic-storage -v $vlan_id -z $vlan_ip -d $portal_ip -i $initiator -e
 **Detach a volume**
 
 1. Unmount a block device from mount point.
-2. Execute cherry-elastic-storage from the server you with volume to be detached.
+2. Execute cherry-elastic-storage from the server you want volume to be detached.
 3. Detach a volume from CherryServers client portal
 
 Example:
