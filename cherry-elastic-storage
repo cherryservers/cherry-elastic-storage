@@ -155,7 +155,7 @@ function detect_distribution() {
         dist_vers=$(cut -d ' ' -f2 <<< $t_var)
     elif [[ -f /etc/centos-release ]]; then
         dist_name="centos"
-        dit_vers=$(grep -Po 'release \K(\d)' /etc/centos-release)
+        dist_vers=$(grep -Po 'release \K(\d)' /etc/centos-release)
     fi
 
     echo -e "\tDist: $dist_name\tVer: $dist_vers"
@@ -176,6 +176,7 @@ function restart_network() {
     elif
         [[ "$dist_name" == "centos" ]]; then
             [[ "$systemctl" -eq 1 ]] && systemctl restart network || service network restart
+            sleep 5
     else
         [[ "$systemctl" -eq 1 ]] && systemctl restart networking
     fi
