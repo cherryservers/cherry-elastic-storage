@@ -339,11 +339,12 @@ function install_required_packages() {
     echo -e "........"
     echo -e "Installing required packages:"
     if [[ "$dist_name" == "ubuntu" ]] || [[ "$dist_name" == "debian" ]]; then
-        [[ ! $(which iscsiadm) ]] && { apt update && apt -y install open-iscsi; }
-        [[ ! $(which multipath) ]] && { apt update && apt -y install multipath-tools; }
+        export DEBIAN_FRONTEND=noninteractive
+        [[ ! $(which iscsiadm 2>/dev/null) ]] && { apt -qq update 1>/dev/null &&  apt -yq install open-iscsi 1>/dev/null; }
+        [[ ! $(which multipath 2>/dev/null) ]] && { apt -qq update 1>/dev/null && apt -yq install multipath-tools 1>/dev/null; }
     elif [[ "$dist_name" == "centos" ]]; then
-        [[ ! $(which iscsiadm) ]] && { yum -y install iscsi-initiator-utils; } 
-        [[ ! $(which multipath) ]] && { yum -y install device-mapper-multipath; }
+        [[ ! $(which iscsiadm 2>/dev/null) ]] && { yum -y install -d1 iscsi-initiator-utils 1>/dev/null; } 
+        [[ ! $(which multipath 2>/dev/null) ]] && { yum -y install -d1 device-mapper-multipath 1>/dev/null; }
     else
         echo "Unknown packaging system!"
         exit 1
