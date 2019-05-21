@@ -566,10 +566,36 @@ function get_status() {
     echo -e "#####################"
 }
 
+function check_if_portals_reachable() {
+
+    local discovery_ip_1=$1
+    local discovery_ip_2=$2
+
+    echo -e "........"
+    echo -e "Check portal IPs:"
+
+    portals=($discovery_ip_1 $discovery_ip_2)
+
+    for portal in ${portals[*]}; do
+        png=$(ping -q -c 3 $portal >/dev/null);
+        if [[ $? == 1 ]]; then
+            echo -e "\tIt seems that internal VLAN is not ready yet for $portal address."
+            echo -e "\tPlease try to run command again a bit later."
+            echo -e "Check portal IPs. Done."
+            return 1
+        fi
+    done
+
+    echo -e "Check portal IPs. Done."
+
+    return 0
+}
+
 if [[ "$attach" == "yes" ]]; then
 
     detect_distribution
     make_secondary_vlan_ip_up $vlan_id $vlan_ip_1; [[ $? -eq 0 ]] || { echo "Unable to setup secondary IP!"; exit 1; }
+    check_if_portals_reachable $discovery_ip_1 $discovery_ip_2; [[ $? -eq 0 ]] || exit 1
     install_required_packages
     create_multipath_config
     change_initiator_name $initiator
