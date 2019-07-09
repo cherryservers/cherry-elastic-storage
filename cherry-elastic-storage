@@ -453,7 +453,7 @@ function configure_multipath() {
     if [[ $(multipath -ll|grep -Eo '.*dm'|awk '{if (NF == 3){print $2} else if(NF == 2){print $1}}'|sed 's/[()]//g'|grep StorPool) ]]; then
         wwid=$(multipath -ll|grep -Eo '.*dm'|awk '{if (NF == 3){print $2} else if(NF == 2){print $1}}'|sed 's/[()]//g'|grep StorPool)
     else
-        wwid=$(/lib/udev/scsi_id -g -u -d /dev/$dev_name)
+        wwid=$(udevadm info --name=/dev/$dev_name | grep -Po 'ID_SERIAL=\K(.*)')
     fi
     vol_name=$(cut -d ':' -f3 <<< $target_name)
 
