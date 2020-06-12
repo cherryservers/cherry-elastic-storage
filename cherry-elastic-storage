@@ -215,7 +215,19 @@ function calculate_ips() {
     local discovery_ip_1=$2
 
     # Get secondary vlan and discovery IP addresses
-    if [[ "$vlan_ip_1" =~ "10.169." ]] || [[ "$vlan_ip_1" =~ "10.168." ]]; then
+    if [[ "$vlan_ip_1" =~ "10.168." ]] || [[ "$vlan_ip_1" =~ "10.169." ]] || [[ "$vlan_ip_1" =~ "10.170." ]]; then
+        vlan_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $vlan_ip_1)
+        discovery_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $discovery_ip_1)
+
+    elif [[ "$vlan_ip_1" =~ "10.171." ]] || [[ "$vlan_ip_1" =~ "10.172." ]] || [[ "$vlan_ip_1" =~ "10.173." ]]; then
+        vlan_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $vlan_ip_1)
+        discovery_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $discovery_ip_1)
+
+    elif [[ "$vlan_ip_1" =~ "10.174." ]] || [[ "$vlan_ip_1" =~ "10.175." ]] || [[ "$vlan_ip_1" =~ "10.176." ]]; then
+        vlan_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $vlan_ip_1)
+        discovery_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $discovery_ip_1)
+
+    elif [[ "$vlan_ip_1" =~ "10.177." ]]; then
         vlan_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $vlan_ip_1)
         discovery_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $discovery_ip_1)
 
