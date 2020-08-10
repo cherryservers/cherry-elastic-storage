@@ -92,7 +92,7 @@ function make_network_config_template() {
     local vlan_id=$2
     local vlan_ip_2=$3
 
-    if [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" == "18" ]]; then
+    if [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" =~ 18|20 ]]; then
         cat > $template << EOF
 network:
     version: 2
@@ -169,7 +169,7 @@ function restart_network() {
     local vlan_id=$2
 
     # Restart network
-    if [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" == "18" ]]; then
+    if [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" =~ 18|20 ]]; then
         netplan apply
     elif [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" == "14" ]]; then
         ifdown $vlan_interface.$vlan_id && ifup $vlan_interface.$vlan_id
@@ -253,7 +253,7 @@ function make_secondary_vlan_ip_up() {
 
     calculate_ips $vlan_ip_1 $discovery_ip_1
 
-    if [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" == "18" ]]; then
+    if [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" =~ 18|20 ]]; then
         net_cfg="/etc/netplan/60-$vlan_ip_2.yaml"
     elif [[ "$dist_name" == "ubuntu" ]] || [[ "$dist_name" == "debian" ]]; then
         net_cfg="/etc/network/interfaces.d/60-$vlan_ip_2.cfg"
