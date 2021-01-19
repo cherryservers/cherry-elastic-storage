@@ -8,10 +8,15 @@ param (
 $vlanIp2 = $vlanIp.split(".")
 $portalIp2 = $portalIp.Split(".")
 
-if ( $vlanIp -like "*10.168*" -or $vlanIp -like "*10.169*") {
+if ( $vlanIp -like "*10.168*" -or $vlanIp -like "*10.169*" -or $vlanIp -like "*10.170*") {
     $vlan_ip_2 = "$($vlanIp2[0]).$($vlanIp2[1]-10).$($vlanIp2[2]).$($vlanIp2[3])"
     $portal_ip_2 = "$($portalIp2[0]).$($portalIp2[1]-10).$($portalIp2[2]).$($portalIp2[3])"
-    
+} elseif ( $vlanIp -like "*10.171*" -or $vlanIp -like "*10.172*" -or $vlanIp -like "*10.173*")
+    $vlan_ip_2 = "$($vlanIp2[0]).$($vlanIp2[1]-10).$($vlanIp2[2]).$($vlanIp2[3])"
+    $portal_ip_2 = "$($portalIp2[0]).$($portalIp2[1]-10).$($portalIp2[2]).$($portalIp2[3])"
+} elseif ( $vlanIp -like "*10.174*" -or $vlanIp -like "*10.175*" -or $vlanIp -like "*10.176*")
+    $vlan_ip_2 = "$($vlanIp2[0]).$($vlanIp2[1]-10).$($vlanIp2[2]).$($vlanIp2[3])"
+    $portal_ip_2 = "$($portalIp2[0]).$($portalIp2[1]-10).$($portalIp2[2]).$($portalIp2[3])"
 } elseif ( $vlanIp -like "*192.168*" ) {
     $vlan_ip_2 = "10.157.$($vlanIp2[2]).$($vlanIp2[3])"
     $portal_ip_2 = "10.157.$($portalIp2[2]).$($portalIp2[3])"
