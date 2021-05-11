@@ -5,9 +5,10 @@
 This script helps in attaching or detaching CherryServers.com elastic storage volume to desired server. Use it at your own risk and always have a backup!
 
 # Supported distributions
-* CentOS 6, 7
+* CentOS 6, 7, 8
 * Ubuntu 14, 16, 18, 20
-* Debian 8, 9
+* Debian 8, 9, 10
+* openSUSE Leap 15
 
 # Features
 * Attach elastic storage block device

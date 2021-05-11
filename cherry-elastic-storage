@@ -178,13 +178,14 @@ function restart_network() {
         netplan apply
     elif [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" == "14" ]]; then
         ifdown $vlan_interface.$vlan_id && ifup $vlan_interface.$vlan_id
-    elif
-        [[ "$dist_name" == "centos" ]]; then
-            ip addr flush $vlan_interface.$vlan_id
-            [[ "$systemctl" -eq 1 ]] && systemctl restart network || service network restart
-    elif
-        [[ "$dist_name" == "opensuse" ]]; then
-            [[ "$systemctl" -eq 1 ]] && systemctl restart network || service network restart
+    elif [[ "$dist_name" == "centos" ]] && [[ "$dist_vers" != "8" ]]; then
+        ip addr flush $vlan_interface.$vlan_id
+        [[ "$systemctl" -eq 1 ]] && systemctl restart network || service network restart
+    elif [[ "$dist_name" == "centos" ]] && [[ "$dist_vers" == "8" ]]; then
+        ip addr flush $vlan_interface.$vlan_id
+        ifdown $vlan_interface.$vlan_id && ifup $vlan_interface.$vlan_id 
+    elif [[ "$dist_name" == "opensuse" ]]; then
+        [[ "$systemctl" -eq 1 ]] && systemctl restart network || service network restart
     else
         [[ "$systemctl" -eq 1 ]] && systemctl restart networking
     fi
