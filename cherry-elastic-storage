@@ -131,6 +131,11 @@ PHYSDEV=$vlan_interface
 USERCTL=no
 VLAN=yes
 EOF
+    elif [[ "$dist_name" == "opensuse" ]]; then
+        cat > $template << EOF
+IPADDR_1=$vlan_ip_2
+NETMASK_1=255.255.255.0
+EOF
     else
         echo "Unknown distribution."
         exit 1
@@ -177,6 +182,9 @@ function restart_network() {
         [[ "$dist_name" == "centos" ]]; then
             ip addr flush $vlan_interface.$vlan_id
             [[ "$systemctl" -eq 1 ]] && systemctl restart network || service network restart
+    elif
+        [[ "$dist_name" == "opensuse" ]]; then
+            [[ "$systemctl" -eq 1 ]] && systemctl restart network || service network restart
     else
         [[ "$systemctl" -eq 1 ]] && systemctl restart networking
     fi
@@ -201,6 +209,9 @@ function reboot_iscsid() {
         fi
     elif
         [[ "$dist_name" == "centos" ]]; then
+            [[ "$systemctl" -eq 1 ]] && systemctl restart iscsid || service iscsid restart
+    elif
+        [[ "$dist_name" == "opensuse" ]]; then
             [[ "$systemctl" -eq 1 ]] && systemctl restart iscsid || service iscsid restart
     else
         echo -e "Unknown distribution!"
@@ -259,6 +270,8 @@ function make_secondary_vlan_ip_up() {
         net_cfg="/etc/network/interfaces.d/60-$vlan_ip_2.cfg"
     elif [[ "$dist_name" == "centos" ]]; then
         net_cfg="/etc/sysconfig/network-scripts/ifcfg-$vlan_interface.$vlan_id:1"
+    elif [[ "$dist_name" == "opensuse" ]]; then
+        net_cfg="/etc/sysconfig/network/ifcfg-$vlan_interface.$vlan_id"
     else
         echo "Unknown distribution."
         exit 1
@@ -283,20 +296,25 @@ function make_secondary_vlan_ip_up() {
                 fi
             done
         else
-            diff -q $template $net_cfg >/dev/null
-            if [[ $? -eq 1 ]]; then
-                echo -e "\tNetwork config file for $vlan_ip_2 already exists."
-                echo -e "\t* Network config file exists but content differs from template."
-                echo -e "\t  Ensure $vlan_ip_2 is up and running by either removing"
-                echo -e "\t  $net_cfg and rerun script"
-                echo -e "\t  or configure it manually and try to run script again."
-                return 1;
-            else
-                echo -e "\tNetwork config file for $vlan_ip_2 already exists."
-                echo -e "The contents are valid. Try to restart networking."
-
-                # Restart network
+            if [[ "$dist_name" == "opensuse" ]]; then
+                cat ${template} >> ${net_cfg}
                 restart_network $vlan_interface $vlan_id
+            else
+                diff -q $template $net_cfg >/dev/null
+                if [[ $? -eq 1 ]]; then
+                    echo -e "\tNetwork config file for $vlan_ip_2 already exists."
+                    echo -e "\t* Network config file exists but content differs from template."
+                    echo -e "\t  Ensure $vlan_ip_2 is up and running by either removing"
+                    echo -e "\t  $net_cfg and rerun script"
+                    echo -e "\t  or configure it manually and try to run script again."
+                    return 1;
+                else
+                    echo -e "\tNetwork config file for $vlan_ip_2 already exists."
+                    echo -e "The contents are valid. Try to restart networking."
+
+                    # Restart network
+                    restart_network $vlan_interface $vlan_id
+                fi
             fi
         fi
     else
@@ -357,6 +375,9 @@ function install_required_packages() {
     elif [[ "$dist_name" == "centos" ]]; then
         [[ ! $(which iscsiadm 2>/dev/null) ]] && { yum -y install -d1 iscsi-initiator-utils 1>/dev/null; } 
         [[ ! $(which multipath 2>/dev/null) ]] && { yum -y install -d1 device-mapper-multipath 1>/dev/null; }
+    elif [[ "$dist_name" == "opensuse" ]]; then
+        [[ ! $(which iscsiadm 2>/dev/null) ]] && { zypper -q install -y open-iscsi  1>/dev/null; } 
+        [[ ! $(which multipath 2>/dev/null) ]] && { zypper -q install -y multipath-tools 1>/dev/null; }
     else
         echo "Unknown packaging system!"
         exit 1
