@@ -352,7 +352,7 @@ function ensure_services_up_and_enabled() {
             [[ "$systemctl" -eq 1 ]] && systemctl enable open-iscsi &>/dev/null
         fi
     elif
-        [[ "$dist_name" == "centos" ]] || [[ "$dist_name" == "centos" ]]; then
+        [[ "$dist_name" == "centos" ]] || [[ "$dist_name" == "almalinux" ]]; then
             if [[ "$systemctl" -eq 1 ]]; then
                 systemctl enable multipathd &>/dev/null; systemctl enable iscsid &>/dev/null;
                 systemctl start multipathd &>/dev/null
