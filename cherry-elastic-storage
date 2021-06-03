@@ -118,7 +118,7 @@ iface $vlan_interface.$vlan_id inet static
     vlan-raw-device $vlan_interface
     vlan_id $vlan_id
 EOF
-    elif [[ "$dist_name" == "centos" ]]; then
+    elif [[ "$dist_name" == "centos" ]] || [[ "$dist_name" == "almalinux" ]]; then
         cat > $template << EOF
 BOOTPROTO=none
 DEVICE=$vlan_interface.$vlan_id:1
@@ -183,7 +183,10 @@ function restart_network() {
         [[ "$systemctl" -eq 1 ]] && systemctl restart network || service network restart
     elif [[ "$dist_name" == "centos" ]] && [[ "$dist_vers" == "8" ]]; then
         ip addr flush $vlan_interface.$vlan_id
-        ifdown $vlan_interface.$vlan_id && ifup $vlan_interface.$vlan_id 
+        ifdown $vlan_interface.$vlan_id && ifup $vlan_interface.$vlan_id
+    elif [[ "$dist_name" == "almalinux" ]] && [[ "$dist_vers" == "8" ]]; then
+        ip addr flush $vlan_interface.$vlan_id
+        ifdown $vlan_interface.$vlan_id && ifup $vlan_interface.$vlan_id
     elif [[ "$dist_name" == "opensuse" ]]; then
         [[ "$systemctl" -eq 1 ]] && systemctl restart network || service network restart
     else
@@ -209,7 +212,7 @@ function reboot_iscsid() {
             [[ "$systemctl" -eq 1 ]] && systemctl restart open-iscsi || service open-iscsi restart
         fi
     elif
-        [[ "$dist_name" == "centos" ]]; then
+        [[ "$dist_name" == "centos" ]] || [[ "$dist_name" == "almalinux" ]]; then
             [[ "$systemctl" -eq 1 ]] && systemctl restart iscsid || service iscsid restart
     elif
         [[ "$dist_name" == "opensuse" ]]; then
@@ -269,7 +272,7 @@ function make_secondary_vlan_ip_up() {
         net_cfg="/etc/netplan/60-$vlan_ip_2.yaml"
     elif [[ "$dist_name" == "ubuntu" ]] || [[ "$dist_name" == "debian" ]]; then
         net_cfg="/etc/network/interfaces.d/60-$vlan_ip_2.cfg"
-    elif [[ "$dist_name" == "centos" ]]; then
+    elif [[ "$dist_name" == "centos" ]] || [[ "$dist_name" == "almalinux" ]]; then
         net_cfg="/etc/sysconfig/network-scripts/ifcfg-$vlan_interface.$vlan_id:1"
     elif [[ "$dist_name" == "opensuse" ]]; then
         net_cfg="/etc/sysconfig/network/ifcfg-$vlan_interface.$vlan_id"
@@ -349,7 +352,7 @@ function ensure_services_up_and_enabled() {
             [[ "$systemctl" -eq 1 ]] && systemctl enable open-iscsi &>/dev/null
         fi
     elif
-        [[ "$dist_name" == "centos" ]]; then
+        [[ "$dist_name" == "centos" ]] || [[ "$dist_name" == "centos" ]]; then
             if [[ "$systemctl" -eq 1 ]]; then
                 systemctl enable multipathd &>/dev/null; systemctl enable iscsid &>/dev/null;
                 systemctl start multipathd &>/dev/null
@@ -373,11 +376,11 @@ function install_required_packages() {
         export DEBIAN_FRONTEND=noninteractive
         [[ ! $(which iscsiadm 2>/dev/null) ]] && { apt -qq update 1>/dev/null &&  apt -yq install open-iscsi 1>/dev/null; }
         [[ ! $(which multipath 2>/dev/null) ]] && { apt -qq update 1>/dev/null && apt -yq install multipath-tools 1>/dev/null; }
-    elif [[ "$dist_name" == "centos" ]]; then
-        [[ ! $(which iscsiadm 2>/dev/null) ]] && { yum -y install -d1 iscsi-initiator-utils 1>/dev/null; } 
+    elif [[ "$dist_name" == "centos" ]] || [[ "$dist_name" == "almalinux" ]]; then
+        [[ ! $(which iscsiadm 2>/dev/null) ]] && { yum -y install -d1 iscsi-initiator-utils 1>/dev/null; }
         [[ ! $(which multipath 2>/dev/null) ]] && { yum -y install -d1 device-mapper-multipath 1>/dev/null; }
     elif [[ "$dist_name" == "opensuse" ]]; then
-        [[ ! $(which iscsiadm 2>/dev/null) ]] && { zypper -q install -y open-iscsi  1>/dev/null; } 
+        [[ ! $(which iscsiadm 2>/dev/null) ]] && { zypper -q install -y open-iscsi  1>/dev/null; }
         [[ ! $(which multipath 2>/dev/null) ]] && { zypper -q install -y multipath-tools 1>/dev/null; }
     else
         echo "Unknown packaging system!"
@@ -458,7 +461,7 @@ function change_initiator_name() {
     if [[ ! $(grep $initiator_name /etc/iscsi/initiatorname.iscsi) ]]; then
         echo -e "\tUpdate initiator name to $initiator_name"
         sed -i "s/InitiatorName=.*/InitiatorName=$initiator_name/g" /etc/iscsi/initiatorname.iscsi
-    fi    
+    fi
 
     echo -e "Change initiator name. Done."
 }
@@ -637,9 +640,9 @@ if [[ "$attach" == "yes" ]]; then
     reboot_iscsid
     ensure_services_up_and_enabled
     attach_volume $discovery_ip_1 $discovery_ip_2
-    clean_mpath_bindings 
+    clean_mpath_bindings
     get_status $vol_name
-fi 
+fi
 
 if [[ "$detach" == "yes" ]]; then
 
