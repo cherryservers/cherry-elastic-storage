@@ -6,7 +6,7 @@ This script helps in attaching or detaching CherryServers.com elastic storage vo
 
 # Supported distributions
 * CentOS 6, 7, 8
-* Ubuntu 14, 16, 18, 20
+* Ubuntu 14, 16, 18, 20, 22
 * Debian 8, 9, 10
 * openSUSE Leap 15
 * AlmaLinux 8
