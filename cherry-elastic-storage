@@ -92,10 +92,11 @@ function make_network_config_template() {
     local vlan_id=$2
     local vlan_ip_2=$3
 
-    if [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" =~ 18|20 ]]; then
+    if [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" =~ 18|20|22 ]]; then
         cat > $template << EOF
 network:
     version: 2
+    $([[ "$dist_vers" =~ 20|22 ]] && { echo "renderer: NetworkManager"; })
     vlans:
         $vlan_interface.$vlan_id:
             addresses:
@@ -176,6 +177,10 @@ function restart_network() {
     # Restart network
     if [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" =~ 18|20 ]]; then
         netplan apply
+    elif [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" == "22" ]]; then
+        netplan apply && sleep 3 \
+        && netplan apply && systemctl start NetworkManager \
+        && nmcli networking off && nmcli networking on
     elif [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" == "14" ]]; then
         ifdown $vlan_interface.$vlan_id && ifup $vlan_interface.$vlan_id
     elif [[ "$dist_name" == "centos" ]] && [[ "$dist_vers" != "8" ]]; then
@@ -268,7 +273,7 @@ function make_secondary_vlan_ip_up() {
 
     calculate_ips $vlan_ip_1 $discovery_ip_1
 
-    if [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" =~ 18|20 ]]; then
+    if [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" =~ 18|20|22 ]]; then
         net_cfg="/etc/netplan/60-$vlan_ip_2.yaml"
     elif [[ "$dist_name" == "ubuntu" ]] || [[ "$dist_name" == "debian" ]]; then
         net_cfg="/etc/network/interfaces.d/60-$vlan_ip_2.cfg"
