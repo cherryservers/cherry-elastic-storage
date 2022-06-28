@@ -197,6 +197,8 @@ function restart_network() {
     else
         [[ "$systemctl" -eq 1 ]] && systemctl restart networking
     fi
+
+    sleep 20;
 }
 
 function reboot_iscsid() {
@@ -523,7 +525,8 @@ function attach_volume() {
         if [[ $(iscsiadm --mode discovery -t sendtargets --portal $portal) ]]; then
             echo -e "\tTargets were discovered on $portal"
         else
-            echo -e "\tError: Can't discover targets on $portal"
+            echo -e "\tError: Can't discover targets on $portal. Try again later."
+            exit 1;
         fi
 
         echo -e "Discover targets on portals. Done."
@@ -588,7 +591,9 @@ function get_status() {
 
     local vol_name=$1
 
-    wwid=$(grep $vol_name /etc/multipath/bindings|awk '{print $2}')
+    if [[ -f /etc/multipath/bindings ]]; then
+        wwid=$(grep "${vol_name:-none}" /etc/multipath/bindings|awk '{print $2}')
+    fi
 
     echo -e "#####################"
     echo -e "Configuration report:"
@@ -602,7 +607,7 @@ function get_status() {
             echo -e "\tBlock device /dev/mapper/$vol_name is ready. Format, mount and use it."
         fi
     else
-        echo -e "\tCan't find block device /dev/mapper/$vol_name. Please contact support for assistance."
+        echo -e "\tCan't find block device /dev/mapper/$vol_name. Please contact support for assistance or try again."
     fi
     echo -e "Configuration report. Done"
     echo -e "#####################"
@@ -619,8 +624,7 @@ function check_if_portals_reachable() {
     portals=($discovery_ip_1 $discovery_ip_2)
 
     for portal in ${portals[*]}; do
-        png=$(ping -q -c 3 $portal >/dev/null);
-        if [[ $? == 1 ]]; then
+        if ! ping -q -c 3 "${portal}" >/dev/null; then
             echo -e "\tIt seems that internal VLAN is not ready yet for $portal address."
             echo -e "\tPlease try to run command again a bit later."
             echo -e "Check portal IPs. Done."
@@ -644,6 +648,8 @@ if [[ "$attach" == "yes" ]]; then
     configure_iscsi
     reboot_iscsid
     ensure_services_up_and_enabled
+    change_initiator_name $initiator
+    reboot_iscsid
     attach_volume $discovery_ip_1 $discovery_ip_2
     clean_mpath_bindings
     get_status $vol_name
