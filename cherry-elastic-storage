@@ -192,6 +192,8 @@ function restart_network() {
     elif [[ "$dist_name" == "almalinux" ]] && [[ "$dist_vers" == "8" ]]; then
         ip addr flush $vlan_interface.$vlan_id
         ifdown $vlan_interface.$vlan_id && ifup $vlan_interface.$vlan_id
+    elif [[ "$dist_name" == "almalinux" ]] && [[ "$dist_vers" == "9" ]]; then
+        systemctl restart NetworkManager
     elif [[ "$dist_name" == "opensuse" ]]; then
         [[ "$systemctl" -eq 1 ]] && systemctl restart network || service network restart
     else
@@ -249,7 +251,23 @@ function calculate_ips() {
         vlan_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $vlan_ip_1)
         discovery_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $discovery_ip_1)
 
-    elif [[ "$vlan_ip_1" =~ "10.177." ]]; then
+    elif [[ "$vlan_ip_1" =~ "10.177." ]] || [[ "$vlan_ip_1" =~ "10.178." ]] || [[ "$vlan_ip_1" =~ "10.179." ]]; then
+        vlan_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $vlan_ip_1)
+        discovery_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $discovery_ip_1)
+
+    elif [[ "$vlan_ip_1" =~ "10.180." ]] || [[ "$vlan_ip_1" =~ "10.181." ]] || [[ "$vlan_ip_1" =~ "10.182." ]]; then
+        vlan_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $vlan_ip_1)
+        discovery_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $discovery_ip_1)
+
+    elif [[ "$vlan_ip_1" =~ "10.183." ]] || [[ "$vlan_ip_1" =~ "10.184." ]] || [[ "$vlan_ip_1" =~ "10.185." ]]; then
+        vlan_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $vlan_ip_1)
+        discovery_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $discovery_ip_1)
+
+    elif [[ "$vlan_ip_1" =~ "10.186." ]] || [[ "$vlan_ip_1" =~ "10.187." ]] || [[ "$vlan_ip_1" =~ "10.188." ]]; then
+        vlan_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $vlan_ip_1)
+        discovery_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $discovery_ip_1)
+
+    elif [[ "$vlan_ip_1" =~ "10.189." ]] || [[ "$vlan_ip_1" =~ "10.190." ]] || [[ "$vlan_ip_1" =~ "10.191." ]]; then
         vlan_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $vlan_ip_1)
         discovery_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $discovery_ip_1)
 
