@@ -10,6 +10,7 @@ This script helps in attaching or detaching CherryServers.com elastic storage vo
 * Debian 8, 9, 10
 * openSUSE Leap 15
 * AlmaLinux 8
+* AlmaLinux 9
 
 # Features
 * Attach elastic storage block device
