@@ -239,37 +239,49 @@ function calculate_ips() {
     local discovery_ip_1=$2
 
     # Get secondary vlan and discovery IP addresses
-    if [[ "$vlan_ip_1" =~ "10.168." ]] || [[ "$vlan_ip_1" =~ "10.169." ]] || [[ "$vlan_ip_1" =~ "10.170." ]]; then
-        vlan_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $vlan_ip_1)
-        discovery_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $discovery_ip_1)
+    if [[ "$vlan_ip_1" =~ "10.160." ]] || [[ "$vlan_ip_1" =~ "10.16ą." ]]; then
+        vlan_ip_2=$(awk -F '.' '{print $1"."$2-32"."$3"."$4}' <<< $vlan_ip_1)
+        discovery_ip_2=$(awk -F '.' '{print $1"."$2-32"."$3"."$4}' <<< $discovery_ip_1)
+
+    elif [[ "$vlan_ip_1" =~ "10.162." ]] || [[ "$vlan_ip_1" =~ "10.163." ]] || [[ "$vlan_ip_1" =~ "10.164." ]]; then
+        vlan_ip_2=$(awk -F '.' '{print $1"."$2-32"."$3"."$4}' <<< $vlan_ip_1)
+        discovery_ip_2=$(awk -F '.' '{print $1"."$2-32"."$3"."$4}' <<< $discovery_ip_1)
+
+    elif [[ "$vlan_ip_1" =~ "10.165." ]] || [[ "$vlan_ip_1" =~ "10.166." ]] || [[ "$vlan_ip_1" =~ "10.167." ]]; then
+        vlan_ip_2=$(awk -F '.' '{print $1"."$2-32"."$3"."$4}' <<< $vlan_ip_1)
+        discovery_ip_2=$(awk -F '.' '{print $1"."$2-32"."$3"."$4}' <<< $discovery_ip_1)
+
+    elif [[ "$vlan_ip_1" =~ "10.168." ]] || [[ "$vlan_ip_1" =~ "10.169." ]] || [[ "$vlan_ip_1" =~ "10.170." ]]; then
+        vlan_ip_2=$(awk -F '.' '{print $1"."$2-32"."$3"."$4}' <<< $vlan_ip_1)
+        discovery_ip_2=$(awk -F '.' '{print $1"."$2-32"."$3"."$4}' <<< $discovery_ip_1)
 
     elif [[ "$vlan_ip_1" =~ "10.171." ]] || [[ "$vlan_ip_1" =~ "10.172." ]] || [[ "$vlan_ip_1" =~ "10.173." ]]; then
-        vlan_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $vlan_ip_1)
-        discovery_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $discovery_ip_1)
+        vlan_ip_2=$(awk -F '.' '{print $1"."$2-32"."$3"."$4}' <<< $vlan_ip_1)
+        discovery_ip_2=$(awk -F '.' '{print $1"."$2-32"."$3"."$4}' <<< $discovery_ip_1)
 
     elif [[ "$vlan_ip_1" =~ "10.174." ]] || [[ "$vlan_ip_1" =~ "10.175." ]] || [[ "$vlan_ip_1" =~ "10.176." ]]; then
-        vlan_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $vlan_ip_1)
-        discovery_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $discovery_ip_1)
+        vlan_ip_2=$(awk -F '.' '{print $1"."$2-32"."$3"."$4}' <<< $vlan_ip_1)
+        discovery_ip_2=$(awk -F '.' '{print $1"."$2-32"."$3"."$4}' <<< $discovery_ip_1)
 
     elif [[ "$vlan_ip_1" =~ "10.177." ]] || [[ "$vlan_ip_1" =~ "10.178." ]] || [[ "$vlan_ip_1" =~ "10.179." ]]; then
-        vlan_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $vlan_ip_1)
-        discovery_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $discovery_ip_1)
+        vlan_ip_2=$(awk -F '.' '{print $1"."$2-32"."$3"."$4}' <<< $vlan_ip_1)
+        discovery_ip_2=$(awk -F '.' '{print $1"."$2-32"."$3"."$4}' <<< $discovery_ip_1)
 
     elif [[ "$vlan_ip_1" =~ "10.180." ]] || [[ "$vlan_ip_1" =~ "10.181." ]] || [[ "$vlan_ip_1" =~ "10.182." ]]; then
-        vlan_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $vlan_ip_1)
-        discovery_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $discovery_ip_1)
+        vlan_ip_2=$(awk -F '.' '{print $1"."$2-32"."$3"."$4}' <<< $vlan_ip_1)
+        discovery_ip_2=$(awk -F '.' '{print $1"."$2-32"."$3"."$4}' <<< $discovery_ip_1)
 
     elif [[ "$vlan_ip_1" =~ "10.183." ]] || [[ "$vlan_ip_1" =~ "10.184." ]] || [[ "$vlan_ip_1" =~ "10.185." ]]; then
-        vlan_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $vlan_ip_1)
-        discovery_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $discovery_ip_1)
+        vlan_ip_2=$(awk -F '.' '{print $1"."$2-32"."$3"."$4}' <<< $vlan_ip_1)
+        discovery_ip_2=$(awk -F '.' '{print $1"."$2-32"."$3"."$4}' <<< $discovery_ip_1)
 
     elif [[ "$vlan_ip_1" =~ "10.186." ]] || [[ "$vlan_ip_1" =~ "10.187." ]] || [[ "$vlan_ip_1" =~ "10.188." ]]; then
-        vlan_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $vlan_ip_1)
-        discovery_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $discovery_ip_1)
+        vlan_ip_2=$(awk -F '.' '{print $1"."$2-32"."$3"."$4}' <<< $vlan_ip_1)
+        discovery_ip_2=$(awk -F '.' '{print $1"."$2-32"."$3"."$4}' <<< $discovery_ip_1)
 
     elif [[ "$vlan_ip_1" =~ "10.189." ]] || [[ "$vlan_ip_1" =~ "10.190." ]] || [[ "$vlan_ip_1" =~ "10.191." ]]; then
-        vlan_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $vlan_ip_1)
-        discovery_ip_2=$(awk -F '.' '{print $1"."$2-10"."$3"."$4}' <<< $discovery_ip_1)
+        vlan_ip_2=$(awk -F '.' '{print $1"."$2-32"."$3"."$4}' <<< $vlan_ip_1)
+        discovery_ip_2=$(awk -F '.' '{print $1"."$2-32"."$3"."$4}' <<< $discovery_ip_1)
 
     elif [[ "$vlan_ip_1" =~ "192.168." ]]; then
         vlan_ip_2=$(awk -F '.' '{print "10.157."$3"."$4}' <<< $vlan_ip_1)
