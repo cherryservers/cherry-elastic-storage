@@ -175,7 +175,7 @@ function restart_network() {
     local vlan_id=$2
 
     # Restart network
-    if [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" =~ 18|20 ]]; then
+    if [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" =~ 18|20|24 ]]; then
         netplan apply
     elif [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" == "22" ]]; then
         netplan apply && sleep 3 \
@@ -241,7 +241,7 @@ function calculate_ips() {
     local discovery_ip_1=$2
 
     # Get secondary vlan and discovery IP addresses
-    if [[ "$vlan_ip_1" =~ "10.160." ]] || [[ "$vlan_ip_1" =~ "10.16ą." ]]; then
+    if [[ "$vlan_ip_1" =~ "10.160." ]] || [[ "$vlan_ip_1" =~ "10.161." ]]; then
         vlan_ip_2=$(awk -F '.' '{print $1"."$2-32"."$3"."$4}' <<< $vlan_ip_1)
         discovery_ip_2=$(awk -F '.' '{print $1"."$2-32"."$3"."$4}' <<< $discovery_ip_1)
 
@@ -307,7 +307,7 @@ function make_secondary_vlan_ip_up() {
 
     calculate_ips $vlan_ip_1 $discovery_ip_1
 
-    if [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" =~ 18|20|22 ]]; then
+    if [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" =~ 18|20|22|24 ]]; then
         net_cfg="/etc/netplan/60-$vlan_ip_2.yaml"
     elif [[ "$dist_name" == "ubuntu" ]] || [[ "$dist_name" == "debian" ]]; then
         net_cfg="/etc/network/interfaces.d/60-$vlan_ip_2.cfg"
