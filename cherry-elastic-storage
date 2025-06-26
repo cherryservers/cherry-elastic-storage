@@ -194,6 +194,8 @@ function restart_network() {
         ifdown $vlan_interface.$vlan_id && ifup $vlan_interface.$vlan_id
     elif [[ "$dist_name" == "almalinux" ]] && [[ "$dist_vers" == "9" ]]; then
         systemctl restart NetworkManager
+    elif [[ "$dist_name" == "almalinux" ]] && [[ "$dist_vers" == "10" ]]; then
+        nmcli c reload && nmcli n off && nmcli n on
     elif [[ "$dist_name" == "opensuse" ]]; then
         [[ "$systemctl" -eq 1 ]] && systemctl restart network || service network restart
     else
@@ -321,6 +323,14 @@ function make_secondary_vlan_ip_up() {
     check_if_secondary_vlan_ip_is_up $vlan_ip_2
     if [[ $? -eq 1 ]]; then
         echo -e "\tNo secondary VLAN IP setuped. Let's setup one."
+
+        if [[ "$dist_name" == "almalinux" ]] && [[ "$dist_vers" =~ 10 ]]; then
+
+            if nmcli c m "${vlan_interface}.${vlan_id}" +ipv4.addresses ${vlan_ip_2}/24; then
+                restart_network $vlan_interface $vlan_id
+                return
+            fi
+        fi
         make_network_config_template $vlan_interface $vlan_id $vlan_ip_2
 
         if [[ ! -e "$net_cfg" ]]; then
@@ -511,10 +521,10 @@ function clean_mpath_bindings() {
     if [[ $(ls /dev/mapper/mpath* 2>/dev/null) ]]; then
         echo -e "\tmpath entried found. Cleaning..."
         for m in $(ls /dev/mapper/mpath* 2>/dev/null); do
-            multipath -f $m
+            multipath -f $m &>/dev/null
         done
     fi
-    multipath >/dev/null
+    multipath &>/dev/null
     echo -e "Clean mpath bindings. Done."
 }
 
@@ -536,6 +546,7 @@ function configure_multipath() {
     else
         echo "$vol_name $wwid" >> /etc/multipath/bindings
     fi
+
 
     multipath $vol_name &>/dev/null
     echo -e "\tConfigure multipath. Done."
@@ -627,6 +638,8 @@ function get_status() {
 
     echo -e "#####################"
     echo -e "Configuration report:"
+    multipath -r >/dev/null
+    sleep 5
 
     if [[ -b "/dev/mapper/$vol_name" ]]; then
         echo -e "\tBlock device /dev/mapper/$vol_name is ready. Format, mount and use it."
