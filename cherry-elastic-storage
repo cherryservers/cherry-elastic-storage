@@ -92,7 +92,7 @@ function make_network_config_template() {
     local vlan_id=$2
     local vlan_ip_2=$3
 
-    if [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" =~ 18|20|22 ]]; then
+    if [[ "$dist_name" == "ubuntu" ]] && [[ "$dist_vers" =~ 18|20|22|24 ]]; then
         cat > $template << EOF
 network:
     version: 2
